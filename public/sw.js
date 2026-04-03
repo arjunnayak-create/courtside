@@ -1,4 +1,4 @@
-const CACHE = 'courtside-v1'
+const CACHE = 'courtside-v2'
 
 // App shell files to cache on install
 const SHELL = [
