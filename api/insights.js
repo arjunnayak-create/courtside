@@ -27,7 +27,7 @@ export default async function handler(req, res) {
         max_tokens: 60,
         messages: [{
           role:    'user',
-          content: `You are a witty sports analyst. One punchy insight about tonight's ${awayTeam} vs ${homeTeam} (${sport}) matchup. Current form or tonight's key storyline only. No historical facts. Max 10 words. No disclaimers.`,
+          content: `Give me one short, specific, interesting fun fact or insight about this matchup: ${awayTeam} vs ${homeTeam} (${sport}). Sound like a knowledgeable fan. Max 12 words. No generic statements.`,
         }],
       }),
     })

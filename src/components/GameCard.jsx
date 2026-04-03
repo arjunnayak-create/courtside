@@ -414,10 +414,10 @@ function InsightBubble({ text }) {
       <div style={{
         position:         'absolute',
         inset:            '-80%',
-        background:       'conic-gradient(from 0deg, #0f0f1a, #0a1628, #0d1f2d, #140f1a, #0f0f1a)',
+        background:       'conic-gradient(from 0deg, #1a1040, #0d2040, #0d3030, #1a1040)',
         animation:        'insight-spin 20s linear infinite',
         borderRadius:     '50%',
-        opacity:          0.8,
+        opacity:          1,
       }} />
       {/* Dark glass interior */}
       <div style={{
@@ -542,7 +542,7 @@ export default function GameCard({ game, isLive, isFinal = false, index = 0, ins
 
         {/* AI insight bubble — container always rendered for qualifying cards to prevent height jump */}
         {insight !== undefined && (
-          <div style={{ height: '46px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ paddingTop: '11px', paddingBottom: '2px', minHeight: '46px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             {insight === '__loading__' ? <InsightSkeleton /> : insight ? <InsightBubble text={insight} /> : null}
           </div>
         )}

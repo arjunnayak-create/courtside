@@ -121,11 +121,10 @@ export default function App() {
 
   const { liveGames, todayGames, finalGames, upcomingByDate, activeSports, loading, error, refresh } = useGames()
 
-  // Qualifying games for AI insights: all live + all NBA pre-game
+  // Qualifying games for AI insights: all live games + today's NBA games only
   const insightGames = [
     ...liveGames,
     ...todayGames.filter(g => g.sport === 'NBA'),
-    ...Object.values(upcomingByDate).flat().filter(g => g.sport === 'NBA'),
   ].filter((g, i, arr) => arr.findIndex(x => x.id === g.id) === i)
 
   const insights = useInsights(insightGames)
