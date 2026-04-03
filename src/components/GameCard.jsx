@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 
 // ─── Utility ─────────────────────────────────────────────────────────────────
 
@@ -13,31 +13,87 @@ function hexToRgba(hex, alpha) {
   }
 }
 
-// ─── Network logo config ──────────────────────────────────────────────────────
+// ─── Streaming service definitions ───────────────────────────────────────────
 
-const NETWORK_CONFIG = {
-  'ESPN':         { label: 'ESPN',   bg: '#CC0000' },
-  'ESPN+':        { label: 'ESPN+',  bg: '#1961CC' },
-  'ESPNU':        { label: 'ESPNU',  bg: '#CC0000' },
-  'ABC':          { label: 'ABC',    bg: '#1a1a1a' },
-  'NBC':          { label: 'NBC',    bg: '#1e1e1e' },
-  'Peacock':      { label: 'NBC',    bg: '#1e1e1e' },
-  'CBS':          { label: 'CBS',    bg: '#1E3D8F' },
-  'Paramount+':   { label: 'P+',     bg: '#1E3D8F' },
-  'TNT':          { label: 'TNT',    bg: '#006FAD' },
-  'TBS':          { label: 'TBS',    bg: '#006FAD' },
-  'truTV':        { label: 'tru',    bg: '#006FAD' },
-  'Max':          { label: 'MAX',    bg: '#002BE7' },
-  'Apple TV+':    { label: 'TV+',    bg: '#1c1c1e' },
-  'Prime':        { label: 'PRIME',  bg: '#007BA7' },
-  'Prime Video':  { label: 'PRIME',  bg: '#007BA7' },
-  'MLB.TV':       { label: 'MLB',    bg: '#041E42' },
-  'NBA TV':       { label: 'NBA',    bg: '#C9082A' },
-  'FOX':          { label: 'FOX',    bg: '#CE1020' },
-  'FS1':          { label: 'FS1',    bg: '#CE1020' },
-  'NFL Network':  { label: 'NFLN',   bg: '#013369' },
-  'Tennis Ch.':   { label: 'TC',     bg: '#883333' },
-  'Golf Channel': { label: 'GOLF',   bg: '#1B5E20' },
+const SERVICES = {
+  ESPN: {
+    name:  'ESPN',
+    label: 'ESPN',
+    bg:    '#CC0000',
+  },
+  'ESPN+': {
+    name:  'ESPN+',
+    label: 'ESPN+',
+    bg:    '#1961CC',
+  },
+  Peacock: {
+    name:  'Peacock',
+    label: 'PEACOCK',
+    bg:    'linear-gradient(135deg, #6B2FA0 0%, #0AA5A8 100%)',
+  },
+  'Paramount+': {
+    name:  'Paramount+',
+    label: 'P+',
+    bg:    '#1641A3',
+  },
+  Max: {
+    name:  'Max',
+    label: 'MAX',
+    bg:    '#002BE7',
+  },
+  'Prime Video': {
+    name:  'Prime Video',
+    label: 'PRIME',
+    bg:    'linear-gradient(135deg, #00A8E1 0%, #007BA7 100%)',
+  },
+  'Apple TV+': {
+    name:   'Apple TV+',
+    label:  'TV+',
+    bg:     '#1c1c1e',
+    border: '1px solid rgba(255,255,255,0.15)',
+  },
+  'YouTube TV': {
+    name:  'YouTube TV',
+    label: 'YT',
+    bg:    '#FF0000',
+  },
+  'NBA League Pass': {
+    name:  'NBA League Pass',
+    label: 'LEAGUE',
+    bg:    '#C9082A',
+  },
+  'MLB.TV': {
+    name:  'MLB.TV',
+    label: 'MLB.TV',
+    bg:    '#041E42',
+  },
+}
+
+const RSN_KEYWORDS = ['SN', 'FanDuel', 'YES', 'MSG', 'BSSC', 'CHSN', 'ROOT', 'NESN', 'MASN', 'FSSO']
+
+function resolveStreaming(network, sport) {
+  const n = network || ''
+
+  // Streaming-first: exact/known channel → streaming home
+  if (n === 'ESPN' || n === 'ABC' || n === 'ESPNU') return SERVICES['ESPN']
+  if (n === 'ESPN+')                                 return SERVICES['ESPN+']
+  if (n === 'NBC'  || n === 'Peacock')               return SERVICES['Peacock']
+  if (n === 'CBS'  || n === 'Paramount+')            return SERVICES['Paramount+']
+  if (n === 'TNT'  || n === 'TBS' || n === 'truTV' || n === 'Max') return SERVICES['Max']
+  if (n === 'Apple TV+' || n === 'Apple TV')          return SERVICES['Apple TV+']
+  if (n === 'Prime' || n === 'Prime Video' || n.toLowerCase().includes('amazon')) return SERVICES['Prime Video']
+  if (n === 'NBA TV')                                return SERVICES['NBA League Pass']
+  if (n === 'MLB.TV')                                return SERVICES['MLB.TV']
+
+  // Regional sports networks → YouTube TV
+  if (n && RSN_KEYWORDS.some(kw => n.includes(kw)))  return SERVICES['YouTube TV']
+
+  // Fallback: sport-specific streaming
+  if (sport === 'NBA')    return SERVICES['NBA League Pass']
+  if (sport === 'MLB')    return SERVICES['MLB.TV']
+  if (sport === 'Soccer') return SERVICES['Apple TV+']
+
+  return null
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -60,40 +116,39 @@ function SportBadge({ sport }) {
   )
 }
 
-function NetworkLogo({ network }) {
-  if (!network) return null
-  const cfg = NETWORK_CONFIG[network] ?? {
-    label: network.slice(0, 5).toUpperCase(),
-    bg: '#2a2a2a',
-  }
+function NetworkLogo({ network, sport }) {
+  const svc = resolveStreaming(network, sport)
+  if (!svc) return null
+
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
       <span style={{
-        display: 'inline-flex',
-        alignItems: 'center',
+        display:        'inline-flex',
+        alignItems:     'center',
         justifyContent: 'center',
-        padding: '0 5px',
-        height: '17px',
-        minWidth: '22px',
-        borderRadius: '3px',
-        background: cfg.bg,
-        fontSize: '7px',
-        fontWeight: 900,
-        color: '#fff',
-        letterSpacing: '0.04em',
-        lineHeight: 1,
-        flexShrink: 0,
-        fontFamily: 'inherit',
+        height:         '22px',
+        padding:        '0 9px',
+        borderRadius:   '5px',
+        background:     svc.bg,
+        border:         svc.border ?? 'none',
+        fontSize:       '9px',
+        fontWeight:     800,
+        fontFamily:     'inherit',
+        color:          '#ffffff',
+        letterSpacing:  '0.08em',
+        lineHeight:     1,
+        flexShrink:     0,
+        whiteSpace:     'nowrap',
       }}>
-        {cfg.label}
+        {svc.label}
       </span>
       <span style={{
-        fontSize: '12px',
+        fontSize:   '12px',
         fontWeight: 400,
-        color: 'var(--color-text-secondary)',
+        color:      'var(--color-text-secondary)',
         letterSpacing: 0,
       }}>
-        {network}
+        {svc.name}
       </span>
     </div>
   )
@@ -126,7 +181,7 @@ function LiveIndicator({ period, clock }) {
         fontWeight: 400,
         letterSpacing: 0,
       }}>
-        {period}{clock ? ` · ${clock}` : ''}
+        {period}{clock ? ` - ${clock}` : ''}
       </span>
     </div>
   )
@@ -147,8 +202,20 @@ function FinalBadge({ period }) {
 }
 
 function TeamRow({ team, isLive, isFinal, isWinner }) {
-  const showScore = (isLive || isFinal) && team.score !== null
-  const dimmed    = isFinal && !isWinner
+  const showScore   = (isLive || isFinal) && team.score !== null
+  const dimmed      = isFinal && !isWinner
+  const prevScore   = useRef(team.score)
+  const [pulsing, setPulsing] = useState(false)
+
+  useEffect(() => {
+    const prev = prevScore.current
+    prevScore.current = team.score
+    if (isLive && team.score !== null && prev !== null && team.score !== prev) {
+      setPulsing(true)
+      const t = setTimeout(() => setPulsing(false), 300)
+      return () => clearTimeout(t)
+    }
+  }, [team.score, isLive])
 
   return (
     <div style={{
@@ -192,21 +259,25 @@ function TeamRow({ team, isLive, isFinal, isWinner }) {
       {showScore && (
         <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0, paddingLeft: '14px' }}>
           <span style={{
-            width: '9px',
-            fontSize: '7px',
-            lineHeight: 1,
-            color: 'var(--color-text-secondary)',
-            opacity: isWinner ? 0.8 : 0,
-            textAlign: 'center',
-            flexShrink: 0,
-          }}>▲</span>
+            display:      'inline-block',
+            width:        0,
+            height:       0,
+            borderLeft:   '3.5px solid transparent',
+            borderRight:  '3.5px solid transparent',
+            borderBottom: '5px solid var(--color-text-secondary)',
+            opacity:      isWinner ? 0.7 : 0,
+            flexShrink:   0,
+            marginRight:  '1px',
+          }} />
           <span style={{
-            fontSize: '26px',
-            fontWeight: 700,
-            color: 'var(--color-text-primary)',
+            fontSize:           isLive ? '28px' : '26px',
+            fontWeight:         800,
+            color:              'var(--color-text-primary)',
             fontVariantNumeric: 'tabular-nums',
-            letterSpacing: '-0.03em',
-            lineHeight: 1,
+            letterSpacing:      '-0.03em',
+            lineHeight:         1,
+            display:            'inline-block',
+            animation:          pulsing ? 'score-pulse 300ms ease-out forwards' : 'none',
           }}>
             {team.score}
           </span>
@@ -244,7 +315,7 @@ function ScoreTable({ game }) {
                 </td>
                 {scores.map((s, i) => (
                   <td key={i} style={{ textAlign: 'center', padding: '4px 6px', color: s !== null ? 'var(--color-text-primary)' : 'var(--color-text-muted)', fontVariantNumeric: 'tabular-nums' }}>
-                    {s !== null ? s : '—'}
+                    {s !== null ? s : '-'}
                   </td>
                 ))}
                 <td style={{ textAlign: 'center', padding: '4px 0 4px 8px', color: 'var(--color-text-primary)', fontWeight: 700, fontVariantNumeric: 'tabular-nums', borderLeft: '1px solid rgba(255,255,255,0.08)' }}>
@@ -287,7 +358,12 @@ function ExpandedDetail({ game }) {
         <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--color-text-muted)', marginBottom: '8px' }}>
           Broadcast
         </div>
-        <NetworkLogo network={game.network} />
+        <NetworkLogo network={game.network} sport={game.sport} />
+        {game.network && resolveStreaming(game.network, game.sport)?.name !== game.network && (
+          <div style={{ fontSize: '11px', fontWeight: 400, color: 'var(--color-text-muted)', marginTop: '6px' }}>
+            Also on: {game.network}
+          </div>
+        )}
       </div>
       <div>
         <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--color-text-muted)', marginBottom: '8px' }}>
@@ -309,24 +385,23 @@ function ExpandedDetail({ game }) {
 
 // ─── Card ─────────────────────────────────────────────────────────────────────
 
-export default function GameCard({ game, isLive, isFinal = false }) {
+export default function GameCard({ game, isLive, isFinal = false, index = 0 }) {
   const [expanded, setExpanded] = useState(false)
 
   const homeWon = isFinal && game.homeTeam.score > game.awayTeam.score
   const awayWon = isFinal && game.awayTeam.score > game.homeTeam.score
 
-  const baseBg  = 'linear-gradient(160deg, #1a1a1a 0%, #111111 100%)'
-  const cardBg  = game.isFavorite
-    ? `linear-gradient(160deg, ${hexToRgba(game.favoriteColor, 0.07)} 0%, transparent 50%), ${baseBg}`
-    : baseBg
+  const cardBg = game.isFavorite
+    ? hexToRgba(game.favoriteColor, 0.07)
+    : 'rgba(255,255,255,0.04)'
 
   const borderL = game.isFavorite
     ? `3px solid ${game.favoriteColor}`
-    : '1px solid rgba(255,255,255,0.07)'
+    : '1px solid rgba(255,255,255,0.08)'
 
-  const shadow  = game.isFavorite
-    ? `0 0 36px ${hexToRgba(game.favoriteColor, 0.13)}, 0 1px 0 rgba(255,255,255,0.05) inset, 0 6px 20px rgba(0,0,0,0.5)`
-    : '0 1px 0 rgba(255,255,255,0.04) inset, 0 4px 16px rgba(0,0,0,0.45)'
+  const shadow = game.isFavorite
+    ? `inset 0 1px 0 rgba(255,255,255,0.1), 0 0 40px ${hexToRgba(game.favoriteColor, 0.12)}, 0 8px 32px rgba(0,0,0,0.5)`
+    : 'inset 0 1px 0 rgba(255,255,255,0.08), 0 4px 24px rgba(0,0,0,0.35)'
 
   return (
     <div
@@ -336,18 +411,22 @@ export default function GameCard({ game, isLive, isFinal = false }) {
       onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && setExpanded(v => !v)}
       className="card-hoverable"
       style={{
-        background: cardBg,
-        borderRadius: '16px',
-        border: '1px solid rgba(255,255,255,0.07)',
-        borderLeft: borderL,
-        boxShadow: shadow,
-        overflow: 'hidden',
-        cursor: 'pointer',
+        background:             cardBg,
+        backdropFilter:         'blur(20px)',
+        WebkitBackdropFilter:   'blur(20px)',
+        borderRadius:           '16px',
+        border:                 '1px solid rgba(255,255,255,0.08)',
+        borderLeft:             borderL,
+        boxShadow:              shadow,
+        overflow:               'hidden',
+        cursor:                 'pointer',
+        animation:              'card-enter 400ms ease-out both',
+        animationDelay:         `${index * 60}ms`,
         WebkitTapHighlightColor: 'transparent',
-        touchAction: 'manipulation',
-        outline: 'none',
-        userSelect: 'none',
-        WebkitUserSelect: 'none',
+        touchAction:            'manipulation',
+        outline:                'none',
+        userSelect:             'none',
+        WebkitUserSelect:       'none',
       }}
     >
       <div style={{ padding: '13px 15px' }}>
@@ -377,18 +456,17 @@ export default function GameCard({ game, isLive, isFinal = false }) {
 
         {/* Bottom row */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <NetworkLogo network={game.network} />
+          <NetworkLogo network={game.network} sport={game.sport} />
           <span style={{
-            fontSize: '13px',
-            color: 'var(--color-text-muted)',
-            display: 'inline-block',
-            transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)',
-            transition: 'transform 0.2s ease',
-            lineHeight: 1,
-            opacity: 0.45,
-          }}>
-            ⌄
-          </span>
+            display:      'inline-block',
+            width:        '7px',
+            height:       '7px',
+            borderRight:  '1.5px solid rgba(255,255,255,0.45)',
+            borderBottom: '1.5px solid rgba(255,255,255,0.45)',
+            transform:    expanded ? 'rotate(225deg) translateY(2px)' : 'rotate(45deg)',
+            transition:   'transform 0.2s ease',
+            flexShrink:   0,
+          }} />
         </div>
       </div>
 

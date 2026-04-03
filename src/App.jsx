@@ -1,8 +1,15 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Header from './components/Header'
 import SportFilter from './components/SportFilter'
 import GameCard from './components/GameCard'
+import SplashScreen from './components/SplashScreen'
 import { useGames } from './hooks/useGames'
+
+const splashAlreadyShown = () =>
+  sessionStorage.getItem('courtside_splash_shown') === 'true'
+
+// Must match the order in SportFilter.jsx
+const SPORTS_ORDER = ['All', 'NBA', 'NFL', 'MLB', 'NHL', 'Soccer', 'CFB', 'CBB', 'Tennis', 'Golf', 'MMA']
 
 // Format 'YYYY-MM-DD' ET date string into a display label
 function formatDateLabel(dateStr) {
@@ -95,8 +102,70 @@ const CARD_PADDING = {
 }
 
 export default function App() {
+  const [showSplash, setShowSplash] = useState(!splashAlreadyShown())
+  const [appVisible, setAppVisible] = useState(splashAlreadyShown())
+
+  function handleSplashComplete() {
+    sessionStorage.setItem('courtside_splash_shown', 'true')
+    setShowSplash(false)
+    setAppVisible(true)
+  }
+
   const [activeSport, setActiveSport] = useState('All')
-  const { liveGames, todayGames, finalGames, upcomingByDate, activeSports, loading, error } = useGames()
+  const [slideDir,    setSlideDir]    = useState(null)   // 'left' | 'right' | null
+  const [animKey,     setAnimKey]     = useState(0)
+  const [refreshing,  setRefreshing]  = useState(false)
+  const touchStartRef = useRef({ x: 0, y: 0, atTop: false })
+  const refreshingRef = useRef(false)  // guard against double-trigger
+
+  const { liveGames, todayGames, finalGames, upcomingByDate, activeSports, loading, error, refresh } = useGames()
+
+  // Ordered list of sports that have games this week
+  const visibleSports = SPORTS_ORDER.filter(s => s === 'All' || activeSports.has(s))
+
+  function navigateSport(delta) {
+    const idx    = visibleSports.indexOf(activeSport)
+    const newIdx = Math.max(0, Math.min(visibleSports.length - 1, idx + delta))
+    if (newIdx === idx) return
+    setSlideDir(delta > 0 ? 'left' : 'right')
+    setAnimKey(k => k + 1)
+    setActiveSport(visibleSports[newIdx])
+  }
+
+  function onTouchStart(e) {
+    touchStartRef.current = {
+      x:     e.touches[0].clientX,
+      y:     e.touches[0].clientY,
+      atTop: window.scrollY === 0,
+    }
+  }
+
+  async function triggerRefresh() {
+    if (refreshingRef.current) return
+    refreshingRef.current = true
+    setRefreshing(true)
+    await refresh()
+    setRefreshing(false)
+    refreshingRef.current = false
+  }
+
+  function onTouchEnd(e) {
+    const { x: startX, y: startY, atTop } = touchStartRef.current
+    const dx    = e.changedTouches[0].clientX - startX
+    const rawDy = e.changedTouches[0].clientY - startY   // signed: positive = pulled down
+    const absDy = Math.abs(rawDy)
+
+    // Pull-to-refresh: downward pull > 60px from the very top, not a horizontal gesture
+    if (atTop && rawDy > 60 && Math.abs(dx) < 30) {
+      triggerRefresh()
+      return
+    }
+
+    // Horizontal swipe: sport navigation
+    if (Math.abs(dx) > 50 && absDy < 30) {
+      navigateSport(dx < 0 ? 1 : -1)
+    }
+  }
 
   // Auto-reset filter if the selected sport disappears from the 7-day window
   useEffect(() => {
@@ -124,23 +193,30 @@ export default function App() {
     || filteredUpcoming.length > 0
 
   return (
+    <>
+    {showSplash && <SplashScreen onComplete={handleSplashComplete} />}
     <div style={{
-      maxWidth: '480px',
-      margin: '0 auto',
-      minHeight: '100svh',
-      backgroundColor: 'var(--color-bg)',
-      position: 'relative',
+      maxWidth:   '480px',
+      margin:     '0 auto',
+      minHeight:  '100svh',
+      background: 'radial-gradient(ellipse 600px 300px at 50% -60px, rgba(255,59,48,0.05) 0%, transparent 70%), var(--color-bg)',
+      position:   'relative',
+      opacity:    appVisible ? 1 : 0,
+      transition: 'opacity 300ms ease',
     }}>
       {/* Sticky header + filter bar */}
-      <div style={{
-        position: 'sticky',
-        top: 0,
-        zIndex: 100,
-        backgroundColor: 'rgba(8, 8, 8, 0.96)',
-        backdropFilter: 'blur(16px)',
-        WebkitBackdropFilter: 'blur(16px)',
-        borderBottom: '1px solid rgba(255,255,255,0.07)',
-      }}>
+      <div
+        className="header-scrim"
+        style={{
+          position:             'sticky',
+          top:                  0,
+          zIndex:               100,
+          backgroundColor:      'rgba(8, 8, 8, 0.92)',
+          backdropFilter:       'blur(24px) saturate(1.8)',
+          WebkitBackdropFilter: 'blur(24px) saturate(1.8)',
+          borderBottom:         '1px solid rgba(255,255,255,0.06)',
+        }}
+      >
         <Header />
         <SportFilter
           activeSport={activeSport}
@@ -149,7 +225,31 @@ export default function App() {
         />
       </div>
 
-      <main style={{ paddingBottom: 'max(32px, env(safe-area-inset-bottom))' }}>
+      <main
+        onTouchStart={onTouchStart}
+        onTouchEnd={onTouchEnd}
+        style={{ paddingBottom: 'max(32px, env(safe-area-inset-bottom))', overflow: 'hidden' }}
+      >
+
+        {/* Pull-to-refresh indicator — thin scanning line */}
+        <div style={{
+          height:     '1.5px',
+          overflow:   'hidden',
+          position:   'relative',
+          background: 'rgba(255,255,255,0.05)',
+          opacity:    refreshing ? 1 : 0,
+          transition: refreshing ? 'opacity 150ms ease' : 'opacity 500ms ease 300ms',
+        }}>
+          <div style={{
+            position:   'absolute',
+            top:        0,
+            left:       0,
+            height:     '100%',
+            width:      '35%',
+            background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.75) 50%, transparent 100%)',
+            animation:  refreshing ? 'ptr-scan 1.1s linear infinite' : 'none',
+          }} />
+        </div>
 
         {/* Loading skeleton */}
         {loading && (
@@ -168,92 +268,102 @@ export default function App() {
           </div>
         )}
 
-        {/* Error — only shown when there's no data at all */}
-        {!loading && error && !hasGames && (
-          <div style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            padding: '80px 24px',
-            gap: '8px',
-            textAlign: 'center',
-          }}>
-            <div style={{ fontSize: '28px', color: 'var(--color-text-muted)', lineHeight: 1 }}>↯</div>
-            <div style={{ fontSize: '16px', color: 'var(--color-text-primary)', fontWeight: 500 }}>
-              Couldn't load games
-            </div>
-            <div style={{ fontSize: '14px', color: 'var(--color-text-muted)', maxWidth: '280px' }}>
-              {error}
-            </div>
-          </div>
-        )}
+        {/* Swipeable content — keyed so remount resets the slide animation on every navigation */}
+        {!loading && (
+          <div
+            key={animKey}
+            style={{
+              animation: slideDir === 'left'  ? 'swipe-in-from-right 250ms ease' :
+                         slideDir === 'right' ? 'swipe-in-from-left  250ms ease' : 'none',
+            }}
+          >
+            {/* Error */}
+            {error && !hasGames && (
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                padding: '80px 24px',
+                gap: '8px',
+                textAlign: 'center',
+              }}>
+                <div style={{ fontSize: '16px', color: 'var(--color-text-primary)', fontWeight: 500 }}>
+                  Couldn't load games
+                </div>
+                <div style={{ fontSize: '14px', color: 'var(--color-text-muted)', maxWidth: '280px' }}>
+                  {error}
+                </div>
+              </div>
+            )}
 
-        {/* Live games */}
-        {!loading && filteredLive.length > 0 && (
-          <section>
-            <SectionLabel live />
-            <div style={CARD_PADDING}>
-              {filteredLive.map(game => (
-                <GameCard key={game.id} game={game} isLive />
-              ))}
-            </div>
-          </section>
-        )}
+            {/* Live games */}
+            {filteredLive.length > 0 && (
+              <section style={{ backgroundColor: 'rgba(255,59,48,0.03)', paddingBottom: '14px' }}>
+                <SectionLabel live />
+                <div style={CARD_PADDING}>
+                  {filteredLive.map((game, i) => (
+                    <GameCard key={game.id} game={game} isLive index={i} />
+                  ))}
+                </div>
+              </section>
+            )}
 
-        {/* Today's upcoming games */}
-        {!loading && filteredToday.length > 0 && (
-          <section style={{ marginTop: filteredLive.length > 0 ? '8px' : '0' }}>
-            <SectionLabel />
-            <div style={CARD_PADDING}>
-              {filteredToday.map(game => (
-                <GameCard key={game.id} game={game} isLive={false} isFinal={false} />
-              ))}
-            </div>
-          </section>
-        )}
+            {/* Today's upcoming games */}
+            {filteredToday.length > 0 && (
+              <section style={{ marginTop: filteredLive.length > 0 ? '8px' : '0' }}>
+                <SectionLabel />
+                <div style={CARD_PADDING}>
+                  {filteredToday.map((game, i) => (
+                    <GameCard key={game.id} game={game} isLive={false} isFinal={false} index={i} />
+                  ))}
+                </div>
+              </section>
+            )}
 
-        {/* Today's final games */}
-        {!loading && filteredFinal.length > 0 && (
-          <section style={{ marginTop: (filteredLive.length > 0 || filteredToday.length > 0) ? '8px' : '0' }}>
-            <SectionLabel label="Final" />
-            <div style={CARD_PADDING}>
-              {filteredFinal.map(game => (
-                <GameCard key={game.id} game={game} isLive={false} isFinal />
-              ))}
-            </div>
-          </section>
-        )}
+            {/* Today's final games */}
+            {filteredFinal.length > 0 && (
+              <section style={{ marginTop: (filteredLive.length > 0 || filteredToday.length > 0) ? '8px' : '0' }}>
+                <SectionLabel label="Final" />
+                <div style={CARD_PADDING}>
+                  {filteredFinal.map((game, i) => (
+                    <GameCard key={game.id} game={game} isLive={false} isFinal index={i} />
+                  ))}
+                </div>
+              </section>
+            )}
 
-        {/* Future games grouped by date */}
-        {!loading && filteredUpcoming.map(({ date, games }) => (
-          <section key={date} style={{ marginTop: '8px' }}>
-            <SectionLabel label={formatDateLabel(date)} />
-            <div style={CARD_PADDING}>
-              {games.map(game => (
-                <GameCard key={game.id} game={game} isLive={false} isFinal={false} />
-              ))}
-            </div>
-          </section>
-        ))}
+            {/* Future games grouped by date */}
+            {filteredUpcoming.map(({ date, games }) => (
+              <section key={date} style={{ marginTop: '8px' }}>
+                <SectionLabel label={formatDateLabel(date)} />
+                <div style={CARD_PADDING}>
+                  {games.map((game, i) => (
+                    <GameCard key={game.id} game={game} isLive={false} isFinal={false} index={i} />
+                  ))}
+                </div>
+              </section>
+            ))}
 
-        {/* Empty state */}
-        {!loading && !error && !hasGames && (
-          <div style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '80px 24px',
-            gap: '8px',
-          }}>
-            <div style={{ fontSize: '32px', color: 'var(--color-text-muted)', lineHeight: 1 }}>—</div>
-            <div style={{ fontSize: '16px', color: 'var(--color-text-muted)' }}>
-              No {activeSport === 'All' ? '' : activeSport + ' '}games this week
-            </div>
+            {/* Empty state */}
+            {!error && !hasGames && (
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '80px 24px',
+                gap: '8px',
+              }}>
+                <div style={{ fontSize: '16px', color: 'var(--color-text-muted)' }}>
+                  No {activeSport === 'All' ? '' : activeSport + ' '}games this week
+                </div>
+              </div>
+            )}
           </div>
         )}
 
       </main>
     </div>
+    </>
   )
 }

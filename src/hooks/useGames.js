@@ -8,9 +8,10 @@ const ENDPOINTS = [
   { sport: 'Soccer', path: 'soccer/usa.1' },
   { sport: 'CFB',    path: 'football/college-football' },
   { sport: 'CBB',    path: 'basketball/mens-college-basketball' },
+  { sport: 'MMA',    path: 'mma/ufc' },
 ]
 
-const SPORT_PRIORITY = { NBA: 0, MLB: 1, NHL: 2, Soccer: 3, CBB: 4, CFB: 5, NFL: 6, Tennis: 7, Golf: 8 }
+const SPORT_PRIORITY = { NBA: 0, MLB: 1, NHL: 2, Soccer: 3, CBB: 4, CFB: 5, NFL: 6, Tennis: 7, Golf: 8, MMA: 9 }
 
 const FAVORITES = [
   { match: 'Knicks',  color: '#F58426' },
@@ -251,5 +252,6 @@ export function useGames() {
     return () => clearTimeout(timeoutId)
   }, [])
 
-  return { liveGames, todayGames, finalGames, upcomingByDate, activeSports, loading, error }
+  return { liveGames, todayGames, finalGames, upcomingByDate, activeSports, loading, error,
+           refresh: () => fetchAll(true) }
 }
