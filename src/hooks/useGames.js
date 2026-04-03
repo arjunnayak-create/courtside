@@ -17,6 +17,7 @@ const FAVORITES = [
   { match: 'Knicks',  color: '#F58426' },
   { match: 'Yankees', color: '#003087' },
   { match: 'Giants',  color: '#0B2265' },
+  { match: 'Lakers',  color: '#552583' },
 ]
 
 function getFavoriteColor(displayName = '') {

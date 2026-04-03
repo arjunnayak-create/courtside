@@ -4,6 +4,7 @@ import SportFilter from './components/SportFilter'
 import GameCard from './components/GameCard'
 import SplashScreen from './components/SplashScreen'
 import { useGames } from './hooks/useGames'
+import { useInsights } from './hooks/useInsights'
 
 const splashAlreadyShown = () =>
   sessionStorage.getItem('courtside_splash_shown') === 'true'
@@ -119,6 +120,15 @@ export default function App() {
   const refreshingRef = useRef(false)  // guard against double-trigger
 
   const { liveGames, todayGames, finalGames, upcomingByDate, activeSports, loading, error, refresh } = useGames()
+
+  // Qualifying games for AI insights: all live + all NBA pre-game
+  const insightGames = [
+    ...liveGames,
+    ...todayGames.filter(g => g.sport === 'NBA'),
+    ...Object.values(upcomingByDate).flat().filter(g => g.sport === 'NBA'),
+  ].filter((g, i, arr) => arr.findIndex(x => x.id === g.id) === i)
+
+  const insights = useInsights(insightGames)
 
   // Ordered list of sports that have games this week
   const visibleSports = SPORTS_ORDER.filter(s => s === 'All' || activeSports.has(s))
@@ -302,7 +312,7 @@ export default function App() {
                 <SectionLabel live />
                 <div style={CARD_PADDING}>
                   {filteredLive.map((game, i) => (
-                    <GameCard key={game.id} game={game} isLive index={i} />
+                    <GameCard key={game.id} game={game} isLive index={i} insight={insights.get(game.id)} />
                   ))}
                 </div>
               </section>
@@ -314,7 +324,7 @@ export default function App() {
                 <SectionLabel />
                 <div style={CARD_PADDING}>
                   {filteredToday.map((game, i) => (
-                    <GameCard key={game.id} game={game} isLive={false} isFinal={false} index={i} />
+                    <GameCard key={game.id} game={game} isLive={false} isFinal={false} index={i} insight={insights.get(game.id)} />
                   ))}
                 </div>
               </section>
@@ -326,7 +336,7 @@ export default function App() {
                 <SectionLabel label="Final" />
                 <div style={CARD_PADDING}>
                   {filteredFinal.map((game, i) => (
-                    <GameCard key={game.id} game={game} isLive={false} isFinal index={i} />
+                    <GameCard key={game.id} game={game} isLive={false} isFinal index={i} insight={insights.get(game.id)} />
                   ))}
                 </div>
               </section>
@@ -338,7 +348,7 @@ export default function App() {
                 <SectionLabel label={formatDateLabel(date)} />
                 <div style={CARD_PADDING}>
                   {games.map((game, i) => (
-                    <GameCard key={game.id} game={game} isLive={false} isFinal={false} index={i} />
+                    <GameCard key={game.id} game={game} isLive={false} isFinal={false} index={i} insight={insights.get(game.id)} />
                   ))}
                 </div>
               </section>

@@ -383,9 +383,78 @@ function ExpandedDetail({ game }) {
   )
 }
 
+// ─── Insight bubble ──────────────────────────────────────────────────────────
+
+function InsightSkeleton() {
+  return (
+    <div style={{
+      height:       '22px',
+      width:        '60%',
+      borderRadius: '99px',
+      background:   'rgba(255,255,255,0.04)',
+      border:       '1px solid rgba(255,255,255,0.07)',
+      animation:    'skeleton-pulse 1.6s ease-in-out infinite',
+    }} />
+  )
+}
+
+function InsightBubble({ text }) {
+  return (
+    <div style={{
+      position:     'relative',
+      padding:      '1.5px',
+      borderRadius: '99px',
+      overflow:     'hidden',
+      maxWidth:     '88%',
+      flexShrink:   0,
+      animation:    'insight-fade-in 500ms ease forwards',
+    }}>
+      {/* Rotating iridescent border */}
+      <div style={{
+        position:   'absolute',
+        inset:      '-60%',
+        background: 'conic-gradient(from 0deg, #7928CA, #2563EB, #0891B2, #059669, #7928CA)',
+        animation:  'insight-spin 5s linear infinite',
+      }} />
+      {/* Glass content layer */}
+      <div style={{
+        position:      'relative',
+        background:    'rgba(10,10,10,0.92)',
+        borderRadius:  '98px',
+        padding:       '4px 12px 4px 9px',
+        display:       'flex',
+        alignItems:    'center',
+        gap:           '6px',
+      }}>
+        <span style={{
+          fontSize:   '8px',
+          lineHeight: 1,
+          flexShrink: 0,
+          background: 'linear-gradient(135deg, #A78BFA, #38BDF8)',
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+          backgroundClip: 'text',
+        }}>✦</span>
+        <span style={{
+          fontSize:      '11px',
+          fontWeight:    400,
+          color:         'rgba(255,255,255,0.7)',
+          overflow:      'hidden',
+          textOverflow:  'ellipsis',
+          whiteSpace:    'nowrap',
+          letterSpacing: '0.01em',
+          lineHeight:    1.3,
+        }}>
+          {text}
+        </span>
+      </div>
+    </div>
+  )
+}
+
 // ─── Card ─────────────────────────────────────────────────────────────────────
 
-export default function GameCard({ game, isLive, isFinal = false, index = 0 }) {
+export default function GameCard({ game, isLive, isFinal = false, index = 0, insight }) {
   const [expanded, setExpanded] = useState(false)
 
   const homeWon = isFinal && game.homeTeam.score > game.awayTeam.score
@@ -468,6 +537,16 @@ export default function GameCard({ game, isLive, isFinal = false, index = 0 }) {
             flexShrink:   0,
           }} />
         </div>
+
+        {/* AI insight bubble */}
+        {insight && (
+          <div style={{ display: 'flex', justifyContent: 'center', marginTop: '10px' }}>
+            {insight === '__loading__'
+              ? <InsightSkeleton />
+              : <InsightBubble text={insight} />
+            }
+          </div>
+        )}
       </div>
 
       {expanded && <ExpandedDetail game={game} isLive={isLive} />}
