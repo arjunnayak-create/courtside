@@ -238,7 +238,7 @@ export default function App() {
       <main
         onTouchStart={onTouchStart}
         onTouchEnd={onTouchEnd}
-        style={{ paddingBottom: 'max(32px, env(safe-area-inset-bottom))', overflow: 'hidden' }}
+        style={{ paddingBottom: 'max(32px, env(safe-area-inset-bottom))' }}
       >
 
         {/* Pull-to-refresh indicator — thin scanning line */}
@@ -285,6 +285,7 @@ export default function App() {
             style={{
               animation: slideDir === 'left'  ? 'swipe-in-from-right 250ms ease' :
                          slideDir === 'right' ? 'swipe-in-from-left  250ms ease' : 'none',
+              overflowX: 'hidden',
             }}
           >
             {/* Error */}

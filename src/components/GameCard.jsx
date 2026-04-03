@@ -388,62 +388,64 @@ function ExpandedDetail({ game }) {
 function InsightSkeleton() {
   return (
     <div style={{
-      height:       '22px',
-      width:        '60%',
+      height:       '24px',
+      width:        '62%',
       borderRadius: '99px',
-      background:   'rgba(255,255,255,0.04)',
-      border:       '1px solid rgba(255,255,255,0.07)',
-      animation:    'skeleton-pulse 1.6s ease-in-out infinite',
+      background:   'rgba(255,255,255,0.035)',
+      border:       '1px solid rgba(255,255,255,0.06)',
+      animation:    'skeleton-pulse 1.8s ease-in-out infinite',
+      margin:       '0 auto',
     }} />
   )
 }
 
 function InsightBubble({ text }) {
   return (
+    /* Outer wrapper clips the spinning border to the pill shape */
     <div style={{
       position:     'relative',
       padding:      '1.5px',
       borderRadius: '99px',
       overflow:     'hidden',
-      maxWidth:     '88%',
-      flexShrink:   0,
-      animation:    'insight-fade-in 500ms ease forwards',
+      maxWidth:     '90%',
+      animation:    'insight-fade-in 600ms ease forwards',
     }}>
-      {/* Rotating iridescent border */}
+      {/* Spinning iridescent border */}
       <div style={{
-        position:   'absolute',
-        inset:      '-60%',
-        background: 'conic-gradient(from 0deg, #7928CA, #2563EB, #0891B2, #059669, #7928CA)',
-        animation:  'insight-spin 5s linear infinite',
+        position:         'absolute',
+        inset:            '-80%',
+        background:       'conic-gradient(from 0deg, #6D28D9, #2563EB, #0891B2, #0D9488, #7C3AED, #6D28D9)',
+        animation:        'insight-spin 6s linear infinite',
+        borderRadius:     '50%',
       }} />
-      {/* Glass content layer */}
+      {/* Dark glass interior */}
       <div style={{
-        position:      'relative',
-        background:    'rgba(10,10,10,0.92)',
-        borderRadius:  '98px',
-        padding:       '4px 12px 4px 9px',
-        display:       'flex',
-        alignItems:    'center',
-        gap:           '6px',
+        position:       'relative',
+        background:     'rgba(8,8,8,0.93)',
+        borderRadius:   '98px',
+        padding:        '5px 13px 5px 10px',
+        display:        'flex',
+        alignItems:     'center',
+        gap:            '6px',
       }}>
         <span style={{
-          fontSize:   '8px',
-          lineHeight: 1,
-          flexShrink: 0,
-          background: 'linear-gradient(135deg, #A78BFA, #38BDF8)',
+          fontSize:             '9px',
+          lineHeight:           1,
+          flexShrink:           0,
+          background:           'linear-gradient(135deg, #A78BFA 0%, #38BDF8 100%)',
           WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent',
-          backgroundClip: 'text',
+          WebkitTextFillColor:  'transparent',
+          backgroundClip:       'text',
         }}>✦</span>
         <span style={{
           fontSize:      '11px',
           fontWeight:    400,
-          color:         'rgba(255,255,255,0.7)',
+          color:         'rgba(255,255,255,0.68)',
           overflow:      'hidden',
           textOverflow:  'ellipsis',
           whiteSpace:    'nowrap',
           letterSpacing: '0.01em',
-          lineHeight:    1.3,
+          lineHeight:    1,
         }}>
           {text}
         </span>
@@ -487,7 +489,6 @@ export default function GameCard({ game, isLive, isFinal = false, index = 0, ins
         border:                 '1px solid rgba(255,255,255,0.08)',
         borderLeft:             borderL,
         boxShadow:              shadow,
-        overflow:               'hidden',
         cursor:                 'pointer',
         animation:              'card-enter 400ms ease-out both',
         animationDelay:         `${index * 60}ms`,
@@ -540,11 +541,8 @@ export default function GameCard({ game, isLive, isFinal = false, index = 0, ins
 
         {/* AI insight bubble */}
         {insight && (
-          <div style={{ display: 'flex', justifyContent: 'center', marginTop: '10px' }}>
-            {insight === '__loading__'
-              ? <InsightSkeleton />
-              : <InsightBubble text={insight} />
-            }
+          <div style={{ display: 'flex', justifyContent: 'center', marginTop: '11px' }}>
+            {insight === '__loading__' ? <InsightSkeleton /> : <InsightBubble text={insight} />}
           </div>
         )}
       </div>

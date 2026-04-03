@@ -1,58 +1,59 @@
 import { useState, useEffect, useRef } from 'react'
 
-// Fetch a single game's insight from the serverless function
+// Module-level cache — survives re-renders and 5s polling cycles
+const cache   = new Map()   // gameId → insight string
+const pending = new Set()   // gameIds currently in-flight
+
 async function fetchInsight(game) {
   const res = await fetch('/api/insights', {
     method:  'POST',
     headers: { 'Content-Type': 'application/json' },
     body:    JSON.stringify({
-      awayTeam: game.awayTeam.name,
-      homeTeam: game.homeTeam.name,
+      awayTeam: game.awayTeam?.name ?? '',
+      homeTeam: game.homeTeam?.name ?? '',
       sport:    game.sport,
     }),
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
   const { insight } = await res.json()
+  if (!insight) throw new Error('empty')
   return insight
 }
 
-// games: array of game objects (qualifying: all live + NBA pre-game)
-// Returns a Map of gameId → insight string (or '__loading__' while pending)
+// Returns a Map of gameId → '__loading__' | insight string
+// Re-renders the consumer whenever a new insight lands
 export function useInsights(games) {
-  const cacheRef  = useRef(new Map())   // gameId → insight text (permanent)
-  const pendingRef = useRef(new Set())  // gameIds currently in-flight
-  const [, setBump] = useState(0)       // force re-render when cache fills
+  const [, setBump] = useState(0)
 
   useEffect(() => {
     if (!games || games.length === 0) return
 
-    let changed = false
-    const toFetch = games.filter(g => {
-      if (!g.awayTeam || !g.homeTeam) return false
-      return !cacheRef.current.has(g.id) && !pendingRef.current.has(g.id)
-    })
+    let dirty = false
 
-    if (toFetch.length === 0) return
+    for (const game of games) {
+      if (!game?.awayTeam || !game?.homeTeam) continue
+      if (cache.has(game.id) || pending.has(game.id)) continue
 
-    for (const game of toFetch) {
-      pendingRef.current.add(game.id)
-      cacheRef.current.set(game.id, '__loading__')
-      changed = true
+      pending.add(game.id)
+      cache.set(game.id, '__loading__')
+      dirty = true
 
       fetchInsight(game)
         .then(text => {
-          cacheRef.current.set(game.id, text)
-          pendingRef.current.delete(game.id)
+          cache.set(game.id, text)
+          pending.delete(game.id)
           setBump(b => b + 1)
         })
         .catch(() => {
-          cacheRef.current.delete(game.id)
-          pendingRef.current.delete(game.id)
+          // Fail silently — remove so it doesn't show skeleton forever
+          cache.delete(game.id)
+          pending.delete(game.id)
+          setBump(b => b + 1)
         })
     }
 
-    if (changed) setBump(b => b + 1)
+    if (dirty) setBump(b => b + 1)
   }, [games])
 
-  return cacheRef.current
+  return cache
 }
