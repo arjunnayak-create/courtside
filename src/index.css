@@ -1,0 +1,92 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
+
+:root {
+  --color-bg: #080808;
+  --color-surface: #141414;
+  --color-surface-raised: #1a1a1a;
+  --color-border: #222222;
+  --color-text-primary: #f5f5f5;
+  --color-text-secondary: #888888;
+  --color-text-muted: #444444;
+  --color-accent: #e8ff3b;
+  --color-live: #ff3b30;
+
+  --font-display: 'Inter', sans-serif;
+  --font-ui: 'Inter', sans-serif;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  /* Prevent iOS font size inflation */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+html {
+  height: 100%;
+}
+
+body, #root {
+  min-height: 100%;
+}
+
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text-primary);
+  font-family: var(--font-ui);
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  /* Momentum scrolling */
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+}
+
+/* No hover states on touch devices */
+@media (hover: hover) {
+  .card-hoverable:hover {
+    filter: brightness(1.08);
+  }
+}
+
+/* Hide scrollbars on sport filter */
+.scroll-no-bar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scroll-no-bar::-webkit-scrollbar {
+  display: none;
+}
+
+@keyframes pulse-dot {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.35;
+    transform: scale(0.7);
+  }
+}
+
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 0.4; }
+  50%       { opacity: 0.15; }
+}
+
+@keyframes expand-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
