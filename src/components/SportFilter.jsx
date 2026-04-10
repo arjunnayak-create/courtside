@@ -1,10 +1,11 @@
 const SPORTS = ['All', 'NBA', 'NFL', 'MLB', 'NHL', 'Soccer', 'CFB', 'CBB', 'Tennis', 'Golf', 'MMA']
 
 const SPORT_LOGOS = {
-  NBA: 'https://a.espncdn.com/i/teamlogos/leagues/500/nba.png',
-  NFL: 'https://a.espncdn.com/i/teamlogos/leagues/500/nfl.png',
-  MLB: 'https://a.espncdn.com/i/teamlogos/leagues/500/mlb.png',
-  NHL: 'https://a.espncdn.com/i/teamlogos/leagues/500/nhl.png',
+  NBA:  'https://a.espncdn.com/i/teamlogos/leagues/500/nba.png',
+  NFL:  'https://a.espncdn.com/i/teamlogos/leagues/500/nfl.png',
+  MLB:  'https://a.espncdn.com/i/teamlogos/leagues/500/mlb.png',
+  NHL:  'https://a.espncdn.com/i/teamlogos/leagues/500/nhl.png',
+  Golf: 'https://a.espncdn.com/i/teamlogos/leagues/500/pga.png',
 }
 
 // Sports that get a small dot accent instead of a logo

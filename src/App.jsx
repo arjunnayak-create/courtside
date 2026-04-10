@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import Header from './components/Header'
 import SportFilter from './components/SportFilter'
 import GameCard from './components/GameCard'
+import GolfCard from './components/GolfCard'
 import SplashScreen from './components/SplashScreen'
 import { useGames } from './hooks/useGames'
 
@@ -99,6 +100,13 @@ const CARD_PADDING = {
   display: 'flex',
   flexDirection: 'column',
   gap: '10px',
+}
+
+function renderCard(game, props) {
+  if (game.sport === 'Golf') {
+    return <GolfCard key={game.id} game={game} {...props} />
+  }
+  return <GameCard key={game.id} game={game} {...props} />
 }
 
 export default function App() {
@@ -303,7 +311,7 @@ export default function App() {
                 <SectionLabel live />
                 <div style={CARD_PADDING}>
                   {filteredLive.map((game, i) => (
-                    <GameCard key={game.id} game={game} isLive index={i} />
+                    renderCard(game, { isLive: true, index: i })
                   ))}
                 </div>
               </section>
@@ -315,7 +323,7 @@ export default function App() {
                 <SectionLabel />
                 <div style={CARD_PADDING}>
                   {filteredToday.map((game, i) => (
-                    <GameCard key={game.id} game={game} isLive={false} isFinal={false} index={i} />
+                    renderCard(game, { isLive: false, isFinal: false, index: i })
                   ))}
                 </div>
               </section>
@@ -327,7 +335,7 @@ export default function App() {
                 <SectionLabel label="Final" />
                 <div style={CARD_PADDING}>
                   {filteredFinal.map((game, i) => (
-                    <GameCard key={game.id} game={game} isLive={false} isFinal index={i} />
+                    renderCard(game, { isLive: false, isFinal: true, index: i })
                   ))}
                 </div>
               </section>
@@ -339,7 +347,7 @@ export default function App() {
                 <SectionLabel label={formatDateLabel(date)} />
                 <div style={CARD_PADDING}>
                   {games.map((game, i) => (
-                    <GameCard key={game.id} game={game} isLive={false} isFinal={false} index={i} />
+                    renderCard(game, { isLive: false, isFinal: false, index: i })
                   ))}
                 </div>
               </section>

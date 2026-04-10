@@ -8,6 +8,7 @@ const ENDPOINTS = [
   { sport: 'Soccer', path: 'soccer/usa.1' },
   { sport: 'CFB',    path: 'football/college-football' },
   { sport: 'CBB',    path: 'basketball/mens-college-basketball' },
+  { sport: 'Golf',   path: 'golf/pga' },
   { sport: 'MMA',    path: 'mma/ufc' },
 ]
 
@@ -74,7 +75,54 @@ function getNext7Days() {
   return dates
 }
 
+function normalizeGolfEvent(event, sport) {
+  try {
+    // Golf scoreboard has no event.status — derive state from date range
+    const now   = Date.now()
+    const start = new Date(event.date).getTime()
+    const end   = new Date(event.endDate).getTime()
+    // ESPN endDate is midnight ET on final day; add 18h so Sunday play isn't "post"
+    const endBuffer = end + 18 * 60 * 60 * 1000
+
+    const isLive  = now >= start && now < endBuffer
+    const isPre   = now < start
+    const isFinal = now >= endBuffer
+    if (!isLive && !isPre && !isFinal) return null
+
+    const state       = isLive ? 'in' : isPre ? 'pre' : 'post'
+    const allNetworks = event.competitions?.[0]?.broadcasts?.[0]?.names ?? []
+    const network     = allNetworks[0] ?? ''
+
+    // Approximate current round from day offset within tournament
+    const dayIndex = Math.max(0, Math.floor((now - start) / 86400000))
+    const period   = isLive ? `Round ${Math.min(4, dayIndex + 1)}` : isFinal ? 'Final' : null
+
+    return {
+      id:             event.id,
+      sport,
+      homeTeam:       { name: event.name, abbr: 'GOLF', score: null, logo: null },
+      awayTeam:       null,
+      status:         state,
+      period,
+      clock:          null,
+      network,
+      allNetworks,
+      isLive,
+      isFinal,
+      startTime:      isPre ? formatStartTime(event.date) : null,
+      gameDate:       getGameDate(event.date),
+      startTimestamp: start,
+      isFavorite:     false,
+      favoriteColor:  null,
+    }
+  } catch {
+    return null
+  }
+}
+
 function normalizeGame(event, sport) {
+  if (sport === 'Golf') return normalizeGolfEvent(event, sport)
+
   try {
     const competition = event.competitions?.[0]
     if (!competition) return null
@@ -151,8 +199,8 @@ function sortLive(games) {
     const pd = sportPri(a.sport) - sportPri(b.sport)
     if (pd !== 0) return pd
     // closest score = most exciting
-    const diffA = Math.abs((a.homeTeam.score ?? 0) - (a.awayTeam.score ?? 0))
-    const diffB = Math.abs((b.homeTeam.score ?? 0) - (b.awayTeam.score ?? 0))
+    const diffA = Math.abs((a.homeTeam.score ?? 0) - (a.awayTeam?.score ?? 0))
+    const diffB = Math.abs((b.homeTeam.score ?? 0) - (b.awayTeam?.score ?? 0))
     return diffA - diffB
   })
 }
